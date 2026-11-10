@@ -18,6 +18,8 @@ button{font-family:inherit}
 #gear,#musbtn{position:absolute;right:12px;top:calc(10px + env(safe-area-inset-top,0px));width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);font-size:20px;color:#fff;z-index:5}
 #sc{position:fixed;inset:0;z-index:10;opacity:0;pointer-events:none;transition:opacity .8s;overflow:hidden}
 #sc.on{opacity:1;pointer-events:auto}
+.skipbtn{position:fixed;top:max(12px,env(safe-area-inset-top));right:12px;z-index:30;padding:8px 14px;border-radius:16px;border:1px solid #fff6;background:#0008;color:#fff;font:600 13px system-ui,sans-serif;backdrop-filter:blur(6px);cursor:pointer}
+.skipbtn:active{transform:scale(.96)}
 #dark{position:absolute;inset:0;z-index:2;background:radial-gradient(circle at 50% 40%,#0a0820cc,#000000f0);opacity:0;transition:opacity 1.6s;pointer-events:none}
 #st{position:absolute;inset:0;z-index:3}
 #fx{position:absolute;inset:0;z-index:6;pointer-events:none;overflow:hidden}
@@ -1110,135 +1112,225 @@ async function story(w){
  D.visits++;s.opens++;s.last=new Date().toISOString();save();logEv('visit','Заглянули к слову «'+w.name+'»');
  st.innerHTML='';fx.innerHTML='';dk.style.opacity=0;
  sc.style.background=`radial-gradient(circle at 50% 40%,${w.bg[0]},${w.bg[1]})`;
- sc.classList.add('on');await sleep(800);
+ sc.classList.add('on');
 
- // 1. Слово оживает, сердечки
- const bw=document.createElement('div');bw.className='bw';bw.textContent=w.name;bw.style.color=w.col;bw.style.setProperty('--c',w.col);st.appendChild(bw);
- const cx=W/2,cy=H*.4;
- for(let i=0;i<w.hs.n;i++){puff(fx,cx+rnd(-60,60),cy+rnd(-20,20),pick(w.hearts),'',{dist:Math.min(W,H)*.6*w.hs.d,dur:w.hs.dur,size:rnd(14,34)});await sleep(w.hs.gap)}
- await sleep(400);
+ // skip → сразу к письму
+ let skipped=false,wake=null;
+ const pause=ms=>new Promise(r=>{
+  if(skipped)return r();
+  const t=setTimeout(r,ms);
+  wake=()=>{clearTimeout(t);r()};
+ });
+ const doSkip=()=>{skipped=true;if(wake)wake()};
+ const skBtn=document.createElement('button');
+ skBtn.className='skipbtn';skBtn.textContent='Пропустить ▶';
+ skBtn.onclick=e=>{e.stopPropagation();doSkip()};
+ sc.appendChild(skBtn);
 
- // 2. Бабочки несут ключ
- const n=w.bf.n+Math.min(3,s.done);let leadP=null,leadB=null,to0=null;
- for(let i=0;i<n;i++){
-  const b=document.createElement('div');b.className='bf';b.style.setProperty('--h',w.bf.hue+'deg');
-  b.innerHTML='<span>🦋</span>'+(i?'':'<div class="kk">🗝️</div>');b.style.fontSize=(i?rnd(22,32):40)+'px';fx.appendChild(b);
-  const from=[-60,H*rnd(.55,.95)],to=[cx+(i?rnd(-100,100):0),cy+(i?rnd(-60,40):80)];
-  const a=b.animate(path(from,to,w.bf.amp*rnd(.7,1.2),w.bf.freq,16),{duration:w.bf.dur*(i?rnd(.9,1.2):1),delay:i*w.bf.dur*.08,easing:'ease-in-out',fill:'both'});
-  if(!i){leadP=a.finished;leadB=b;to0=to}
-  else a.finished.then(()=>b.animate([{opacity:1},{opacity:0}],{duration:1600,fill:'forwards'}));
+ await pause(300);
+
+ // ========== 1. Слово + бабочки несут ключ ==========
+ let keyEl=null,keyX=W/2,keyY=H*.42;
+ if(!skipped){
+  const bw=document.createElement('div');bw.className='bw';bw.textContent=w.name;bw.style.color=w.col;bw.style.setProperty('--c',w.col);st.appendChild(bw);
+  const cx=W/2,cy=H*.36;
+  for(let i=0;i<Math.min(10,w.hs.n);i++)puff(fx,cx+rnd(-50,50),cy+rnd(-15,15),pick(w.hearts),'',{dist:Math.min(W,H)*.4*w.hs.d,dur:1500,size:rnd(12,28)});
+  const n=Math.max(8,(w.bf.n||4)+6);
+  let leadP=null,leadB=null,to0=null;
+  for(let i=0;i<n;i++){
+   if(skipped)break;
+   const b=document.createElement('div');b.className='bf';b.style.setProperty('--h',(w.bf.hue||200)+'deg');
+   b.innerHTML='<span>🦋</span>'+(i?'':'<div class="kk">🗝️</div>');
+   b.style.fontSize=(i?rnd(20,34):42)+'px';fx.appendChild(b);
+   const from=[i%2?-80:W+80,H*rnd(.4,.95)],to=[cx+(i?rnd(-120,120):0),cy+(i?rnd(-50,50):55)];
+   const a=b.animate(path(from,to,(w.bf.amp||50)*rnd(.6,1.1),(w.bf.freq||1.5),14),{duration:2000*(i?rnd(.85,1.15):1),delay:i*70,easing:'ease-in-out',fill:'both'});
+   if(!i){leadP=a.finished;leadB=b;to0=to}
+   else a.finished.then(()=>{try{b.animate([{opacity:1},{opacity:0}],{duration:500,fill:'forwards'})}catch(e){}});
+  }
+  if(leadP&&!skipped)await Promise.race([leadP,pause(2400)]);
+  if(!skipped&&to0){
+   keyX=to0[0];keyY=to0[1]+40;
+   keyEl=document.createElement('div');keyEl.className='key';keyEl.textContent='🗝️';
+   keyEl.style.left=keyX+'px';keyEl.style.top=keyY+'px';st.appendChild(keyEl);
+   try{leadB&&leadB.querySelector('.kk')?.remove()}catch(e){}
+   snd('key');
+   for(let i=0;i<8;i++)puff(fx,keyX,keyY,'✨','',{dist:70,dur:900,size:rnd(12,22)});
+   fx.querySelectorAll('.bf').forEach(b=>{try{b.animate([{opacity:1},{opacity:0}],{duration:500,fill:'forwards'})}catch(e){}});
+   await pause(400);
+  }
  }
- await leadP;
- const key=document.createElement('div');key.className='key';key.textContent='🗝️';key.style.left=to0[0]+'px';key.style.top=(to0[1]+48)+'px';st.appendChild(key);
- leadB.querySelector('.kk').remove();snd('key');leadB.animate([{opacity:1},{opacity:0}],{duration:1500,fill:'forwards'});
- for(let i=0;i<10;i++)puff(fx,to0[0],to0[1]+48,'✨','',{dist:90,dur:1400,size:rnd(14,24)});
- await sleep(1600);
 
- // 3. Затемнение, конверт с печенькой
- dk.style.opacity=.85;await sleep(1800);
- st.innerHTML='';fx.innerHTML='';
- const env=document.createElement('div');env.className='env';env.textContent='💌';st.appendChild(env);
- const cap=document.createElement('div');cap.className='cap';cap.textContent='Коснись конверта';st.appendChild(cap);
- await tap(env);
- env.animate([{transform:'translate(-50%,-50%) rotate(-8deg)'},{transform:'translate(-50%,-50%) rotate(8deg)'},{transform:'translate(-50%,-50%) scale(1.15)'}],{duration:500});
- await sleep(450);env.style.transition='opacity .6s';env.style.opacity=0;
- const ck=document.createElement('div');ck.className='ck';ck.textContent='🥠';st.appendChild(ck);
- ck.animate([{transform:'translate(-50%,-50%) scale(.2)',opacity:0},{transform:'translate(-50%,-50%) scale(1)',opacity:1}],{duration:900});
- cap.textContent='Внутри печенька с пожеланием. Но просто так её не достать…';await sleep(1800);
- env.remove();
+ // ========== 2. Валера + интерактив: отдай ключик ==========
+ if(!skipped){
+  dk.style.opacity=.4;
+  try{st.querySelector('.bw')?.remove()}catch(e){}
+  const g=document.createElement('div');g.id='goose';g.innerHTML='<div class="bub" id="bub"></div>'+gooseSVG(null,true);st.appendChild(g);
+  g.animate([{transform:'translateX(110vw)'},{transform:'none'}],{duration:650,easing:'ease-out'});
+  await pause(700);
+  if(!skipped){
+   say(V(['Меняю ключик на конвертик! Дай-ка его сюда.','{n}, ключик мне — тебе письмецо. Тащи сюда!','Честная сделка: ключ на конверт. ГА!'],'ex',.4));
+   snd('honk');
+   const cap=document.createElement('div');cap.className='cap';cap.textContent='Нажми на ключик или перетащи его к Валере';st.appendChild(cap);
 
- // 4. Валера и печенька
- const pic=document.createElement('div');pic.className='pic';pic.textContent=w.sym;st.appendChild(pic);
- const g=document.createElement('div');g.id='goose';g.innerHTML='<div class="bub" id="bub"></div>'+gooseSVG(null,true);st.appendChild(g);
- g.animate([{transform:'translateX(110vw)'},{transform:'none'}],{duration:1200,easing:'ease-out'});
- await sleep(1300);say(greet(w,s));snd('honk');await sleep(2400);
- say(V(L.feed,'fd',.3));cap.textContent='Перетащи печеньку к Валере или просто коснись её';
- await dragFeed(ck,g);
- cap.textContent='';
- const cr=ck.getBoundingClientRect(),br=$('#bk').getBoundingClientRect();
- ck.style.cssText=`position:fixed;left:${cr.left}px;top:${cr.top}px;transform:none;margin:0;font-size:64px`;
- const dx0=br.left+br.width/2-(cr.left+cr.width/2),dy0=br.top+br.height/2-(cr.top+cr.height/2);
- await ck.animate([{transform:'none',opacity:1},{transform:`translate(${dx0}px,${dy0}px) scale(.3)`,opacity:.2}],{duration:600,easing:'ease-in',fill:'forwards'}).finished;
- ck.remove();g.classList.add('chomp');snd('chomp');await sleep(1500);g.classList.remove('chomp');
- say(w.v.eat);
- const gr0=g.getBoundingClientRect();
- for(let i=0;i<8;i++)puff(fx,gr0.left+gr0.width*.6,gr0.top+30,pick(w.hearts),'',{dist:80,dur:1400,size:rnd(14,24)});
- await sleep(1500);
+   // 1 из 5 — вредничает
+   const naughty=Math.random()<0.2;
+   let accepted=false;
 
- // 5. Пожелание
+   const acceptKey=async()=>{
+    if(accepted||skipped)return;accepted=true;
+    cap.remove();
+    say(V(['Оп, ключик мой! Держи конвертик.','Договорились! Письмецо твоё.','ГА! Честный обмен.'],'acc',.35));
+    snd('key');
+    if(keyEl){
+     const gr=g.getBoundingClientRect();
+     const kr=keyEl.getBoundingClientRect();
+     const dx=(gr.left+gr.width*.55)-(kr.left+kr.width/2);
+     const dy=(gr.top+gr.height*.35)-(kr.top+kr.height/2);
+     await keyEl.animate([{transform:'translate(-50%,-50%)'},{transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.4)`,opacity:.3}],{duration:450,easing:'ease-in',fill:'forwards'}).finished.catch(()=>{});
+     try{keyEl.remove()}catch(e){}
+    }
+   };
+
+   // побег Валеры
+   const runAway=()=>new Promise(async res=>{
+    say(V(['Не-е-ет! Не отдам… то есть не возьму! Поймайте гуся!','ГА-ГА! Догони, если сможешь!','{n}, ключик мой… стоп, наоборот! Бегу!'],'run',.5));
+    snd('honk');
+    // метается влево-вправо
+    for(let i=0;i<4&&!skipped;i++){
+     const side=i%2?-1:1;
+     await g.animate([{transform:'translateX(0)'},{transform:`translateX(${side*18}vw) rotate(${side*8}deg)`},{transform:'translateX(0)'}],{duration:380,easing:'ease-in-out'}).finished.catch(()=>{});
+    }
+    if(skipped)return res();
+    // запыхался, шлёпается на попу
+    say(V(['Фух… всё, сдаюсь. Ключик… давай.','Уфф. Лапы отваливаются. Ладно, забирай… то есть отдавай.','Шлёп. Сижу. Принимаю ключик. ГА…'],'sit',.5));
+    g.animate([{transform:'translateY(0)'},{transform:'translateY(12px) scale(1.05,.9)'},{transform:'translateY(6px) scale(1.02,.96)'}],{duration:500,fill:'forwards'});
+    await pause(900);
+    res();
+   });
+
+   // интерактив ключа: тап или drag к гусю
+   await new Promise(res=>{
+    if(skipped||!keyEl){res();return}
+    let on=false,sx=0,sy=0,ox=0,oy=0,moved=0,busyRun=false;
+
+    const tryGive=async()=>{
+     if(accepted||skipped||busyRun)return;
+     if(naughty&&!g._tired){
+      busyRun=true;g._tired=true;
+      keyEl.style.pointerEvents='none';
+      await runAway();
+      keyEl.style.pointerEvents='';
+      busyRun=false;
+      if(skipped){res();return}
+      // после побега — принимаем при следующей попытке
+      return;
+     }
+     keyEl.onpointerdown=keyEl.onpointermove=keyEl.onpointerup=null;
+     await acceptKey();
+     res();
+    };
+
+    keyEl.style.cursor='pointer';
+    keyEl.style.touchAction='none';
+    keyEl.onpointerdown=e=>{
+     if(accepted||skipped||busyRun)return;
+     on=true;moved=0;sx=e.clientX;sy=e.clientY;
+     const r=keyEl.getBoundingClientRect();ox=r.left+r.width/2;oy=r.top+r.height/2;
+     try{keyEl.setPointerCapture(e.pointerId)}catch(_){}
+    };
+    keyEl.onpointermove=e=>{
+     if(!on||accepted)return;
+     const dx=e.clientX-sx,dy=e.clientY-sy;moved=Math.max(moved,Math.hypot(dx,dy));
+     keyEl.style.left=(ox+dx)+'px';keyEl.style.top=(oy+dy)+'px';
+     keyEl.style.transform='translate(-50%,-50%)';
+    };
+    keyEl.onpointerup=e=>{
+     if(!on)return;on=false;
+     // тап или поднесли к Валере
+     const gr=g.getBoundingClientRect(),kr=keyEl.getBoundingClientRect();
+     const near=Math.hypot(kr.left+kr.width/2-(gr.left+gr.width/2),kr.top+kr.height/2-(gr.top+gr.height*.4))<130;
+     if(moved<12||near)tryGive();
+     else{
+      // вернуть на место слегка
+      keyEl.animate([{left:keyEl.style.left,top:keyEl.style.top},{left:keyX+'px',top:keyY+'px'}],{duration:280,fill:'forwards'});
+      keyEl.style.left=keyX+'px';keyEl.style.top=keyY+'px';
+     }
+    };
+
+    // если скип во время ожидания
+    const poll=setInterval(()=>{if(skipped){clearInterval(poll);res()}},120);
+   });
+  }
+ }
+
+ // ========== 3. Конверт в центре → бомба падает → БАХ → открытие ==========
+ if(!skipped){
+  // убрать гуся и подписи
+  try{st.querySelector('#goose')?.remove()}catch(e){}
+  try{st.querySelector('.cap')?.remove()}catch(e){}
+  try{st.querySelector('.key')?.remove()}catch(e){}
+  fx.innerHTML='';
+  dk.style.opacity=.55;
+
+  const env=document.createElement('div');env.className='env';env.textContent='💌';st.appendChild(env);
+  env.animate([{transform:'translate(-50%,-50%) scale(.2)',opacity:0},{transform:'translate(-50%,-50%) scale(1)',opacity:1}],{duration:400});
+  say(V(['Вот твоё письмецо… Ой.','Что это сверху?','{n}, пригнись!'],'env',.35));
+  await pause(500);
+  if(!skipped){
+   // бомба падает на конверт
+   const bwr=document.createElement('div');bwr.id='bwrap';bwr.innerHTML=BOMB;st.appendChild(bwr);
+   bwr.style.zIndex=5;
+   bwr.animate([{transform:'translateY(-70vh) rotate(-15deg)'},{transform:'translateY(0) rotate(0)'}],{duration:650,easing:'cubic-bezier(.25,.8,.3,1)',fill:'forwards'});
+   await pause(650);
+  }
+  if(!skipped){
+   const bomb=$('#bomb');
+   if(bomb)bomb.classList.add('shake');
+   await pause(280);
+   const br=(st.querySelector('#bwrap')||env).getBoundingClientRect();
+   const bx=br.left+br.width/2,by=br.top+br.height/2;
+   try{st.querySelector('#bwrap')?.remove()}catch(e){}
+   // БАХ
+   const fl=document.createElement('div');fl.className='flash';fl.style.left=(bx-80)+'px';fl.style.top=(by-80)+'px';fx.appendChild(fl);
+   fl.animate([{transform:'scale(.2)',opacity:1},{transform:'scale(4.5)',opacity:0}],{duration:480,easing:'ease-out'}).onfinish=()=>fl.remove();
+   snd('win');
+   for(let i=0;i<Math.min(36,w.burst.n||36);i++){
+    const glyph=Math.random()<.35;
+    puff(fx,bx,by,glyph?pick(['♥','❤']):pick(w.burst.em||w.hearts),glyph?pick(w.pal||['#fff']):'',{dist:Math.max(W,H)*rnd(.3,.65),dur:1200,size:rnd(14,38),grav:w.burst.g||20});
+   }
+   // конверт «открывается»
+   if(env){
+    env.animate([
+     {transform:'translate(-50%,-50%) scale(1) rotate(0)'},{transform:'translate(-50%,-50%) scale(1.25) rotate(-6deg)'},{transform:'translate(-50%,-50%) scale(1.1) rotate(0)',opacity:.9}
+    ],{duration:500});
+    env.textContent='📨';
+   }
+   await pause(700);
+  }
+ }
+
+ // ========== ПИСЬМО ==========
+ st.innerHTML='';fx.innerHTML='';dk.style.opacity=.65;
+ try{skBtn.remove()}catch(e){}
+
  const idx=chooseWish(w,s);s.seen.push(idx);if(!s.found.includes(idx))s.found.push(idx);
  const pending=s.found.filter(i=>i<5).length>=5&&!s.secret;
  save();
+
  const card=(t,x)=>{const c=document.createElement('div');c.className='card';c.style.setProperty('--c',w.col);const h=document.createElement('h3'),p=document.createElement('p');h.textContent=t;p.textContent=x;c.append(h,p);st.appendChild(c);return c};
  let c=card(w.name,w.wishes[idx]);
- await btn('Дальше',w.col);
+ snd('key');
+ await btn(pending?'Дальше':'Принять письмо',w.col);
+
  if(pending){
-  c.remove();say(V(L.secret,'sc',.4));await sleep(2800);
+  c.remove();
+  say(V(L.secret,'sc',.4));
+  await sleep(1400);
   c=card('Тайное пожелание · '+w.name,w.secretWish);
-  await btn('Дальше',w.col);
+  await btn('Принять письмо',w.col);
  }
  c.remove();
 
- // 6. Валера уносит картинку
- say(w.v.grab);await sleep(1900);
- const gr=g.getBoundingClientRect(),pr=pic.getBoundingClientRect(),dx=pr.left-gr.right+10,out=W+300;
- const walk=Array.from({length:7},(_,i)=>({transform:`translate(${dx*i/6}px,${i%2?-8:0}px) rotate(${i%2?-4:4}deg)`}));
- await g.animate(walk,{duration:1400,fill:'forwards'}).finished;
- say('ГА!');pic.animate([{transform:'rotate(0)'},{transform:'rotate(-8deg)'},{transform:'rotate(6deg)'}],{duration:350});
- await sleep(500);
- const run=Array.from({length:9},(_,i)=>({transform:`translate(${dx+out*i/8}px,${i%2?-16:0}px) rotate(${i%2?-5:5}deg)`}));
- const dragP=Array.from({length:9},(_,i)=>({transform:`translate(${out*i/8}px,${i%2?-6:6}px) rotate(${i%2?-14:10}deg)`}));
- pic.animate(dragP,{duration:2400,easing:'ease-in',fill:'forwards'});
- await g.animate(run,{duration:2400,easing:'ease-in',fill:'forwards'}).finished;
- g.remove();pic.remove();dk.style.opacity=.5;
- await sleep(500);
- await btn('Ещё кое-что...',w.col);
-
- // 7. Бомбочка
- st.innerHTML='';
- const bwr=document.createElement('div');bwr.id='bwrap';bwr.innerHTML=BOMB;st.appendChild(bwr);
- const gag=D.visits%3===0;let g2=null;
- const cap2=document.createElement('div');cap2.className='cap';cap2.style.top='68%';cap2.textContent='Подожги фитиль: коснись его или проведи пальцем.'+(gag?'':' Откуда-то издалека доносится: «'+w.v.bomb+'»');st.appendChild(cap2);
- if(gag){g2=document.createElement('div');g2.id='goose';g2.style.bottom='4%';g2.innerHTML='<div class="bub" id="bub"></div>'+gooseSVG(null,true);st.appendChild(g2);g2.animate([{transform:'translateX(-60vw)'},{transform:'none'}],{duration:900,easing:'ease-out'});await sleep(1000);say('Я просто посмотреть! '+w.v.bomb);snd('honk')}
- const bomb=$('#bomb');
- await new Promise(res=>{
-  const go=e=>{const t=document.elementFromPoint(e.clientX,e.clientY);if(t&&t.id==='fh'){bomb.removeEventListener('pointerdown',go);bomb.removeEventListener('pointermove',go);res()}};
-  bomb.addEventListener('pointerdown',go);bomb.addEventListener('pointermove',go);
- });
- cap2.remove();
- const fz=$('#fz'),sp=$('#sp'),Ln=fz.getTotalLength(),t0=performance.now(),dur=2300;
- bomb.classList.add('shake');
- await new Promise(res=>{
-  const f=now=>{
-   const p=Math.min(1,(now-t0)/dur);
-   fz.style.strokeDasharray=`${Ln*(1-p)} ${Ln}`;
-   const pt=fz.getPointAtLength(Ln*(1-p));sp.setAttribute('cx',pt.x);sp.setAttribute('cy',pt.y);sp.setAttribute('r',6+Math.random()*4);
-   bomb.style.animationDuration=(.3-.22*p)+'s';
-   p<1?requestAnimationFrame(f):res();
-  };requestAnimationFrame(f);
- });
- await sleep(400);
-
- // 8. Мультяшный взрыв и сердечки
- const bx=W/2,by=H*.42;
- bomb.classList.remove('shake');snd('boom');bwr.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:'translate(-50%,-50%) scale(1.5)',opacity:0}],{duration:250,fill:'forwards'});
- const fl=document.createElement('div');fl.className='flash';fl.style.left=bx-80+'px';fl.style.top=by-80+'px';fx.appendChild(fl);
- if(g2){say('ГА-ГА-А-А-А-А-А!');snd('honk');g2.animate([{transform:'translate(0,0) rotate(0deg)'},{transform:'translate(-5vw,-40px) rotate(-12deg)',offset:.15},{transform:`translate(${W*.9}px,${-H*1.1}px) rotate(540deg)`}],{duration:1500,easing:'ease-in',fill:'forwards'})}
- fl.animate([{transform:'scale(.2)',opacity:1},{transform:'scale(5)',opacity:0}],{duration:600,easing:'ease-out'}).onfinish=()=>fl.remove();
- for(let i=0;i<3;i++){
-  const h=document.createElement('div');h.className='haze';
-  h.style.cssText=`left:${bx}px;top:${by}px;background:radial-gradient(circle,${w.pal[i%w.pal.length]}cc,${w.pal[(i+1)%w.pal.length]}55 45%,transparent 70%)`;fx.appendChild(h);
-  h.animate([{transform:'translate(-50%,-50%) scale(.05)',opacity:0},{opacity:.9,offset:.25},{transform:'translate(-50%,-50%) scale(1)',opacity:0}],{duration:w.burst.dur+i*500,easing:'ease-out'}).onfinish=()=>h.remove();
- }
- for(let i=0;i<w.burst.n;i++){
-  const glyph=Math.random()<.35;
-  puff(fx,bx,by,glyph?pick(['♥','❤']):pick(w.burst.em),glyph?pick(w.pal):'',{dist:Math.max(W,H)*rnd(.5,.95),dur:w.burst.dur,size:rnd(16,48),grav:w.burst.g});
-  if(i%10===9)await sleep(40);
- }
- await sleep(w.burst.dur*1.3);
- fx.innerHTML='';st.innerHTML='';
-
- // История завершена — только теперь засчитываем и сохраняем
  s.done++;D.done++;if(pending)s.secret=true;save();refreshMarks();D.pet.mood=Math.min(100,D.pet.mood+3);logEv('story','Завершена история «'+w.name+'»');if(earn('story:'+w.id+':'+s.done,1,'История «'+w.name+'»'))toast('🍪 +1 печенька от Валеры');checkAch();checkGifts();
 
  if(agg().complete>=15&&!D.grand){
@@ -1247,9 +1339,9 @@ async function story(w){
   gc.style.setProperty('--c',w.col);gc.append(gh,gp);st.appendChild(gc);
   await btn('Дальше',w.col);gc.remove();
  }
- // 9. Возвращение
+
  await btn('Вернуться назад',w.col);
- sc.classList.remove('on');await sleep(900);
+ sc.classList.remove('on');await sleep(700);
  st.innerHTML='';fx.innerHTML='';dk.style.opacity=0;
 }
 
