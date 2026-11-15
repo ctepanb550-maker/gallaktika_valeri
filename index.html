@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!--
+  ВНИМАНИЕ ПОМОЩНИКАМ: после КАЖДОГО изменения игры (микропатча) обязательно добавь запись
+  в таблицу обновлений UPDATES (ищи «ИНСТРУКЦИЯ ДЛЯ ПОМОЩНИКОВ» в скрипте). Версия +0.1, всё добавленное — списком.
+-->
 <html lang="ru">
 <head>
 <meta charset="utf-8">
@@ -1933,17 +1937,25 @@ async function story(w){
 function modal(html){$('#mbody').innerHTML=html;$('#mod').classList.add('on')}
 function closeModal(){$('#mod').classList.remove('on')}
 let adminOk=false;
+function openDevs(){
+ modal(`<p style="font-size:20px;margin:0 0 8px">👨‍💻 Разработчики</p>
+ <p style="margin:0 0 12px">Создатель игры: <b style="color:#ffd27a">4uk4a</b> 🖤</p>
+ <a href="https://t.me/Galaxy_valera" target="_blank" rel="noopener" style="display:block;margin:6px 0 12px;padding:11px 14px;border-radius:18px;border:1px solid #9fe8ff88;background:linear-gradient(180deg,#ffffff2a,#ffffff0e);color:#9fe8ff;text-decoration:none;font-size:15px">📣 Telegram-канал Галактики Валеры</a>
+ <button id="dvb">Назад</button>`);
+ $('#dvb').onclick=openSettings;
+}
 function openSettings(){
  if(busy||panelOpen())return;
  const st=stats();
  modal(`<p>⚙️ Настройки</p><p>Посещений: ${st.visits} · Историй завершено: ${st.done}<br>Пожеланий найдено: ${st.found}</p>
- <button id="sn">${D.snd?'🔊 Звук: вкл':'🔇 Звук: выкл'}</button><button id="mu">${D.music.on?'🎵 Музыка: вкл':'🎵 Музыка: выкл'}</button><div id="mt"></div><label><small>Громкость музыки</small><br><input id="mv" type="range" min="0" max="100" value="${Math.round(D.music.vol*100)}"></label><button id="ex">💾 Сохранить копию</button><button id="im">📂 Загрузить копию</button><input type="file" id="fi" accept=".json,application/json" hidden><button id="nick">🪿 Имя: ${D.nick?D.nick:'не указано'}</button><button id="upd">📰 Что нового${updNew()?' •':''}</button><button id="promo">🎫 Промокод</button><button id="rs" class="dn">Сбросить прогресс</button><button id="ad">🔧 Админ</button><button id="cl">Закрыть</button>
+ <button id="sn">${D.snd?'🔊 Звук: вкл':'🔇 Звук: выкл'}</button><button id="mu">${D.music.on?'🎵 Музыка: вкл':'🎵 Музыка: выкл'}</button><div id="mt"></div><label><small>Громкость музыки</small><br><input id="mv" type="range" min="0" max="100" value="${Math.round(D.music.vol*100)}"></label><button id="ex">💾 Сохранить копию</button><button id="im">📂 Загрузить копию</button><input type="file" id="fi" accept=".json,application/json" hidden><button id="nick">🪿 Имя: ${D.nick?D.nick:'не указано'}</button><button id="upd">📰 Что нового${updNew()?' •':''}</button><button id="dev">👨‍💻 Разработчики</button><button id="promo">🎫 Промокод</button><button id="rs" class="dn">Сбросить прогресс</button><button id="ad">🔧 Админ</button><button id="cl">Закрыть</button>
  <small>Прогресс хранится только в этом браузере на этом устройстве и не синхронизируется между устройствами.</small>`);
  $('#cl').onclick=closeModal;backupUI();
  $('#sn').onclick=()=>{D.snd=!D.snd;save();$('#sn').textContent=D.snd?'🔊 Звук: вкл':'🔇 Звук: выкл';snd('tap')};
  musicSettings();
  $('#promo').onclick=openPromoMenu;
  $('#upd').onclick=()=>openUpdates(true);
+  $('#dev').onclick=openDevs;
  $('#nick').onclick=()=>askNick(true,openSettings);
  $('#rs').onclick=()=>{
   modal(`<p>Точно сбросить весь прогресс? Валера всё забудет, а вернуть это будет нельзя.</p><button id="y" class="dn">Да, сбросить</button><button id="n">Отмена</button>`);
@@ -1954,7 +1966,37 @@ function openSettings(){
 }
 /* ============ ОКНО ОБНОВЛЕНИЙ ============ */
 // Новая запись — в НАЧАЛО списка. v — версия, date — дата выхода, items — что добавлено.
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║ ИНСТРУКЦИЯ ДЛЯ ИИ (и людей), КОТОРЫЕ ПРАВЯТ ЭТУ ИГРУ                  ║
+   ╚══════════════════════════════════════════════════════════════════════╝
+   После КАЖДОГО микропатча (любое добавление, исправление, смена графики) ты ОБЯЗАН:
+   1. Добавить НОВЫЙ объект В НАЧАЛО массива UPDATES (самый новый — первый). Старые записи не удалять.
+   2. Версия v = версия верхней записи + 0.1, строкой с одним знаком после точки:
+      '3.2' -> '3.3' -> ... -> '3.9' -> '4.0' (считай как целое: 39+1=40 -> '4.0').
+   3. date — сегодняшняя дата 'ДД.ММ.ГГГГ'. title — 'Микропатч: краткое название'.
+   4. items — по одной строке на каждую добавленную вещь: эмодзи + короткое описание по-русски.
+      Перечисли ВСЁ, что добавлено или изменено в этом патче, ничего не пропускай.
+   5. D.seenUpd и showUpdatePopup() не трогай: окно «Обновление vX» само появится один раз у игрока.
+   6. Если игра станет заметно больше — после правок проверь, что скрипт не сломан (node --check).
+   Авто-детектор в конце файла сам замечает НОВЫЕ комплекты (SHOP_SETS), вещи (ITEMS), достижения (ACH),
+   слова (WORDS) и мини-игры (GAMES) и дописывает их строкой «🆕 … · авто» в текущую версию, не меняя номер.
+   Дубли он отсеивает по названию, но ручную запись всё равно делай — она главнее. */
 const UPDATES=[
+ {v:'3.3',date:'15.11.2026',title:'Микропатч: раздел «Разработчики»',items:[
+  '👨‍💻 В настройках появился раздел «Разработчики»: создатель 4uk4a и ссылка на Telegram-канал Галактики Валеры.',
+  '🤖 В код добавлена инструкция для ИИ-помощников и авто-детектор нового контента: новые комплекты, вещи, достижения, слова и мини-игры сами попадают в «Что нового».'
+ ]},
+ {v:'3.2',date:'15.11.2026',title:'Микропатч: новая графика и живой Валера',items:[
+  '🌌 Новый космос: живые туманности, звёзды с эффектом глубины и пролетающие кометы. Во второй галактике — своя голубая палитра.',
+  '☀️ Солнце получило вращающуюся корону и мягкое свечение.',
+  '💬 Слова-желания стали «стеклянными» с цветной подсветкой.',
+  '🪶 Валера похорошел: объёмное освещение, перья на теле и шее, хохолок на макушке.',
+  '🪽 У Валеры появилось крыло из слоёв перьев, а хвост-веер покачивается. При подпрыгивании и отряхивании он машет крылом.',
+  '🗣️ Валера говорит по-настоящему: клюв открывается в такт речи, голова кивает, бровь поднимается, крыло жестикулирует.',
+  '💌 Нарисованные письмо с сургучной печатью и золотой ключ вместо эмодзи.',
+  '🧊 Стеклянные кнопки, окна и карточки с глубиной и тенями.',
+  '🚀 Кнопка смены галактики убрана с главного экрана — она живёт в домике Валеры.'
+ ]},
  {v:'3.1',date:'14.11.2026',title:'Микропатч: 10 новых нарядов и сортировка по редкости',items:[
   '🕺 Диско-гусь — афро, зеркальные очки, золотая цепь, блестящий комбинезон.',
   '🖤 Пост-панк гусь — котелок, круглые очки, чёрный плащ.',
@@ -4166,6 +4208,251 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('SW failed', err));
   });
 }
+</script>
+<!-- ===== GFX+ : улучшенная графика (слой поверх игры) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<filter id="vol" x="-8%" y="-8%" width="116%" height="116%">
+<feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="b"/>
+<feSpecularLighting in="b" surfaceScale="4" specularConstant=".6" specularExponent="22" lighting-color="#fff" result="s"><fePointLight x="-40" y="-60" z="120"/></feSpecularLighting>
+<feComposite in="s" in2="SourceAlpha" operator="in" result="s2"/>
+<feComposite in="SourceGraphic" in2="s2" operator="arithmetic" k1="0" k2="1" k3=".5" k4="0"/>
+</filter></defs></svg>
+<style>
+#realmbtn{display:none!important}
+#fxbg{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+#fxfg{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:60}
+@keyframes gspin{to{transform:rotate(360deg)}}
+@keyframes gbreath{50%{opacity:.65;transform:scale(1.08)}}
+/* солнце: корона и лучи */
+#sun:not(.suit)::before{content:"";position:absolute;inset:-46px;border-radius:50%;pointer-events:none;
+background:conic-gradient(#ffd27a00,#ffd27a66,#ffd27a00 10%,#ffb86b55 22%,#ffd27a00 34%,#ffd27a66 48%,#ffd27a00 60%,#ffb86b55 74%,#ffd27a00 86%,#ffd27a66);
+-webkit-mask:radial-gradient(circle,transparent 26%,#000 40%,transparent 68%);mask:radial-gradient(circle,transparent 26%,#000 40%,transparent 68%);animation:gspin 28s linear infinite}
+#sun:not(.suit)::after{content:"";position:absolute;inset:-70px;border-radius:50%;pointer-events:none;
+background:radial-gradient(circle,#ffcf7a44,#ff8a5c18 45%,transparent 70%);animation:gbreath 5s ease-in-out infinite}
+/* слова-желания: стекло и свечение */
+.w{background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.04));
+box-shadow:0 0 16px -4px currentColor,0 4px 12px -6px #000,inset 0 1px 0 rgba(255,255,255,.35),inset 0 -6px 12px -8px currentColor}
+/* кнопки */
+#gear,#musbtn,#realmbtn{background:linear-gradient(145deg,#ffffff2e,#ffffff0a);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+box-shadow:0 4px 14px #0007,inset 0 1px 0 #fff5;transition:transform .15s,box-shadow .2s}
+#gear:active,#musbtn:active,#realmbtn:active{transform:scale(.9)}
+#bookbtn,#book2btn,#shopbtn{filter:drop-shadow(0 6px 10px #0009)}
+/* модалки и карточки */
+.mb{background:linear-gradient(160deg,#2c1d68,#140d36);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+box-shadow:0 14px 50px #000b,inset 0 1px 0 #fff3,0 0 0 1px #ffffff14}
+.mb button{background:linear-gradient(180deg,#ffffff2a,#ffffff0e);box-shadow:inset 0 1px 0 #fff4,0 3px 8px #0005;transition:transform .12s}
+.mb button:active{transform:scale(.95)}
+.card{box-shadow:0 12px 34px #0008,inset 0 1px 0 #fff8}
+.btn{box-shadow:0 8px 22px #0007,inset 0 1px 0 #fff6}
+/* Валера: объём */
+#goose svg,.vh svg{filter:url(#vol) drop-shadow(0 6px 10px #0007)}
+.env svg,.key svg{display:block;overflow:visible}
+.env svg{width:1em;height:.75em}
+.key svg{width:.95em;height:.5em;transform:rotate(-32deg)}
+.env,.key{display:flex;align-items:center;justify-content:center}
+.env{filter:drop-shadow(0 0 22px #ffd9a0) drop-shadow(0 8px 10px #0008)}
+</style>
+<script>
+(function(){
+var gal=document.getElementById('gal'),sc=document.getElementById('sc');if(!gal)return;
+var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches,DPR=Math.min(devicePixelRatio||1,2);
+if((navigator.hardwareConcurrency||8)<4)document.querySelectorAll('#vol').forEach(function(f){f.innerHTML=''});
+var bg=document.createElement('canvas');bg.id='fxbg';gal.insertBefore(bg,gal.firstChild);
+var fg=document.createElement('canvas');fg.id='fxfg';document.body.appendChild(fg);
+var x=bg.getContext('2d'),f=fg.getContext('2d'),W=0,H=0,neb,realm=-1,stars=[],comets=[],nextC=2500,px=0,py=0,tx=0,ty=0,parts=[],run=false;
+function rnd(a,b){return a+Math.random()*(b-a)}
+function size(){
+ W=gal.clientWidth||innerWidth;H=gal.clientHeight||innerHeight;
+ bg.width=W*DPR;bg.height=H*DPR;x.setTransform(DPR,0,0,DPR,0,0);
+ fg.width=innerWidth*DPR;fg.height=innerHeight*DPR;f.setTransform(DPR,0,0,DPR,0,0);
+ stars=[];var n=Math.round(W*H/5200);
+ for(var i=0;i<n;i++){var z=Math.random()<.6?1:Math.random()<.7?2:3;stars.push({x:rnd(0,W),y:rnd(0,H),z:z,r:rnd(.4,.9)*z,ph:rnd(0,6.3),sp:rnd(.6,1.6)})}
+ nebula();
+}
+function pal(){return gal.classList.contains('realm2')?[[30,190,255],[20,110,210],[60,240,190],[10,60,140]]:[[130,80,255],[255,80,170],[70,120,255],[190,90,255]]}
+function nebula(){
+ var P=pal(),w=Math.ceil(W/2),h=Math.ceil(H/2);
+ neb=document.createElement('canvas');neb.width=w;neb.height=h;
+ var n=neb.getContext('2d');n.globalCompositeOperation='lighter';
+ for(var i=0;i<10;i++){
+  var c=P[i%P.length],cx=rnd(0,w),cy=rnd(0,h),rad=rnd(.22,.5)*Math.max(w,h);
+  n.save();n.translate(cx,cy);n.rotate(rnd(0,3.14));if(i%2)n.scale(2.4,1);
+  var g=n.createRadialGradient(0,0,0,0,0,rad);
+  g.addColorStop(0,'rgba('+c+',.22)');g.addColorStop(.5,'rgba('+c+',.07)');g.addColorStop(1,'rgba('+c+',0)');
+  n.fillStyle=g;n.fillRect(-rad*2.6,-rad*2.6,rad*5.2,rad*5.2);n.restore();
+ }
+}
+function frame(t){
+ requestAnimationFrame(frame);
+ if(document.hidden||(sc&&sc.classList.contains('on')))return;
+ if(!bg.isConnected)gal.insertBefore(bg,gal.firstChild);
+ var r2=gal.classList.contains('realm2')?2:1;if(r2!==realm){realm=r2;nebula()}
+ var T=reduce?0:t;px+=(tx-px)*.05;py+=(ty-py)*.05;
+ x.clearRect(0,0,W,H);
+ x.globalAlpha=1;x.drawImage(neb,-30+Math.sin(T/9000)*18+px*14,-30+Math.cos(T/11000)*14+py*10,W+60,H+60);
+ var tint=r2===2?'200,245,255':'255,255,255';
+ for(var i=0;i<stars.length;i++){
+  var s=stars[i],sx=(s.x+T*.004*s.z*s.sp+px*s.z*7)%W,sy=(s.y+T*.0015*s.z+py*s.z*5)%H;
+  if(sx<0)sx+=W;if(sy<0)sy+=H;
+  var a=.35+.65*(.5+.5*Math.sin(T/700*s.sp+s.ph));
+  x.fillStyle='rgba('+tint+','+a.toFixed(2)+')';x.beginPath();x.arc(sx,sy,s.r,0,6.283);x.fill();
+  if(s.z===3){x.strokeStyle='rgba('+tint+','+(a*.5).toFixed(2)+')';x.lineWidth=.6;x.beginPath();x.moveTo(sx-s.r*3,sy);x.lineTo(sx+s.r*3,sy);x.moveTo(sx,sy-s.r*3);x.lineTo(sx,sy+s.r*3);x.stroke()}
+ }
+ if(!reduce){
+  if(T>nextC){nextC=T+rnd(4000,9000);comets.push({x:rnd(W*.3,W*1.1),y:rnd(-10,H*.3),vx:-rnd(5,9),vy:rnd(2.5,5),l:1})}
+  for(var j=comets.length-1;j>=0;j--){
+   var c=comets[j];c.x+=c.vx;c.y+=c.vy;c.l-=.012;
+   if(c.l<=0||c.x<-150||c.y>H+150){comets.splice(j,1);continue}
+   var k=Math.hypot(c.vx,c.vy),ex=c.x-c.vx/k*130,ey=c.y-c.vy/k*130,g=x.createLinearGradient(c.x,c.y,ex,ey);
+   g.addColorStop(0,'rgba(255,255,255,'+c.l+')');g.addColorStop(1,'rgba('+tint+',0)');
+   x.strokeStyle=g;x.lineWidth=2;x.lineCap='round';x.beginPath();x.moveTo(c.x,c.y);x.lineTo(ex,ey);x.stroke();
+   x.fillStyle='rgba(255,255,255,'+c.l+')';x.beginPath();x.arc(c.x,c.y,2,0,6.283);x.fill();
+  }
+ }
+}
+/* вспышки при касании */
+function sparkle(cx,cy,r,a){f.globalAlpha=a;f.beginPath();f.moveTo(cx,cy-r);f.quadraticCurveTo(cx,cy,cx+r,cy);f.quadraticCurveTo(cx,cy,cx,cy+r);f.quadraticCurveTo(cx,cy,cx-r,cy);f.quadraticCurveTo(cx,cy,cx,cy-r);f.fill()}
+function fxloop(){
+ f.clearRect(0,0,innerWidth,innerHeight);f.globalCompositeOperation='lighter';
+ for(var i=parts.length-1;i>=0;i--){
+  var p=parts[i];p.life-=.02;if(p.life<=0){parts.splice(i,1);continue}
+  if(p.ring){p.r+=3.2;f.globalAlpha=p.life*.6;f.strokeStyle=p.c;f.lineWidth=2;f.beginPath();f.arc(p.x,p.y,p.r,0,6.283);f.stroke();continue}
+  p.x+=p.vx;p.y+=p.vy;p.vx*=.96;p.vy=p.vy*.96+.04;f.fillStyle=p.c;sparkle(p.x,p.y,p.s*p.life+1,p.life);
+ }
+ f.globalAlpha=1;f.globalCompositeOperation='source-over';
+ if(parts.length)requestAnimationFrame(fxloop);else run=false;
+}
+var cols=['#fff4b0','#ffb6e0','#9fe8ff','#c9a8ff','#ffe27a'];
+
+document.addEventListener('pointermove',function(e){tx=(e.clientX/innerWidth-.5)*2;ty=(e.clientY/innerHeight-.5)*2},{passive:true});
+/* своя графика вместо эмодзи 💌 и 🗝️ */
+var SVG={
+env:'<svg viewBox="0 0 120 90"><defs><linearGradient id="gp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8e6"/><stop offset="1" stop-color="#efd39b"/></linearGradient><linearGradient id="gf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbe9bd"/><stop offset="1" stop-color="#dcb976"/></linearGradient><radialGradient id="gs" cx=".35" cy=".3"><stop offset="0" stop-color="#ff8fa8"/><stop offset="1" stop-color="#b3213f"/></radialGradient></defs><rect x="4" y="8" width="112" height="78" rx="8" fill="url(#gp)" stroke="#b78a45" stroke-width="1.2"/><path d="M5 84 L48 44 M115 84 L72 44" stroke="#c9a36b" stroke-width="1.2" fill="none"/><path d="M4 12 Q4 8 10 8 L110 8 Q116 8 116 12 L60 56 Z" fill="url(#gf)" stroke="#b78a45" stroke-width="1.2"/><circle cx="60" cy="54" r="12" fill="url(#gs)" stroke="#8c1530" stroke-width="1"/><path d="M60 61 C50 54 53 47 58 49 C59.5 49.6 60 51 60 51 C60 51 60.5 49.6 62 49 C67 47 70 54 60 61Z" fill="#ffd3dc"/><ellipse cx="55" cy="48.5" rx="4" ry="2" fill="#fff" opacity=".35"/></svg>',
+key:'<svg viewBox="0 0 120 50"><defs><linearGradient id="gk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".5" stop-color="#f2b01e"/><stop offset="1" stop-color="#a86a00"/></linearGradient></defs><g fill="url(#gk)" stroke="#7a4a00" stroke-width="1.2"><circle cx="22" cy="25" r="17"/><rect x="36" y="21" width="76" height="8" rx="4"/><rect x="88" y="28" width="8" height="13" rx="2"/><rect x="101" y="28" width="8" height="9" rx="2"/></g><circle cx="22" cy="25" r="7.5" fill="#1a1030" opacity=".85"/><path d="M12 17 Q22 8 32 17" stroke="#fff" stroke-width="2" fill="none" opacity=".55" stroke-linecap="round"/></svg>'};
+function swap(n){
+ if(n.nodeType!==1)return;
+ var k=n.classList.contains('env')?'env':n.classList.contains('key')?'key':0;
+ if(k&&!n.dataset.g){n.dataset.g=1;n.innerHTML=SVG[k]}
+ if(n.querySelectorAll)n.querySelectorAll('.env,.key').forEach(swap);
+}
+new MutationObserver(function(m){m.forEach(function(r){r.addedNodes.forEach(swap)})}).observe(document.body,{childList:true,subtree:true});
+addEventListener('resize',size);
+size();requestAnimationFrame(frame);
+})();
+</script>
+
+<!-- ===== VALERA+ : красивый Валера, крылья, перья, разговор ===== -->
+<style>
+.g-wing{transform-origin:64px 95px;animation:vWingIdle 5s ease-in-out infinite}
+@keyframes vWingIdle{0%,100%{transform:rotate(0)}50%{transform:rotate(-2.5deg)}}
+.g-tail{transform-origin:30px 100px;animation:vTail 3.4s ease-in-out infinite}
+@keyframes vTail{0%,100%{transform:rotate(0)}50%{transform:rotate(-6deg)}}
+.g-tuft{transform-origin:80px 20px;animation:vTuft 4s ease-in-out infinite}
+@keyframes vTuft{0%,100%{transform:rotate(0)}50%{transform:rotate(5deg)}}
+.vh.a-hop .g-wing,.vh.a-shake .g-wing{animation:vFlap .28s ease-in-out infinite alternate}
+@keyframes vFlap{from{transform:rotate(0)}to{transform:rotate(-38deg) scale(1.08)}}
+/* разговор */
+.talk .g-low{transform-origin:92px 35px;animation:vJaw .85s ease-in-out infinite}
+@keyframes vJaw{0%,100%{transform:rotate(0)}12%{transform:rotate(17deg)}26%{transform:rotate(3deg)}40%{transform:rotate(21deg)}55%{transform:rotate(5deg)}70%{transform:rotate(15deg)}85%{transform:rotate(2deg)}}
+.talk .g-up{transform-origin:92px 35px;animation:vUp .85s ease-in-out infinite}
+@keyframes vUp{0%,100%{transform:rotate(0)}12%{transform:rotate(-4deg)}26%{transform:rotate(0)}40%{transform:rotate(-5deg)}55%{transform:rotate(0)}70%{transform:rotate(-3deg)}85%{transform:rotate(0)}}
+.talk .g-head{animation:vHeadTalk 1.3s ease-in-out infinite}
+@keyframes vHeadTalk{0%,100%{transform:translate(0,0) rotate(0)}20%{transform:translate(0,-1.5px) rotate(-4deg)}45%{transform:translate(0,0) rotate(3deg)}70%{transform:translate(0,-1px) rotate(-3deg)}}
+.talk .g-neck{animation:vNeckTalk 1.6s ease-in-out infinite}
+@keyframes vNeckTalk{0%,100%{transform:rotate(0)}50%{transform:rotate(2.5deg)}}
+.talk .g-wing{animation:vWingTalk 1.7s ease-in-out infinite}
+@keyframes vWingTalk{0%,100%{transform:rotate(0)}30%{transform:rotate(-16deg)}45%{transform:rotate(-9deg)}70%{transform:rotate(-20deg)}}
+.talk .g-brow{transform-origin:84px 24px;animation:vBrow 1.2s ease-in-out infinite}
+@keyframes vBrow{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-2px) rotate(-8deg)}60%{transform:translateY(-1px) rotate(-3deg)}}
+@media (prefers-reduced-motion:reduce){.g-wing,.g-tail,.g-tuft,.talk *{animation:none!important}}
+</style>
+<script>
+(function(){
+var d=document.createElement('div');
+d.innerHTML='<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>'
++'<radialGradient id="vgB" cx=".45" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#f6f8fc"/><stop offset="1" stop-color="#d9e2ef"/></radialGradient>'
++'<radialGradient id="vgH" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#e3eaf5"/></radialGradient>'
++'<linearGradient id="vgW" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#d3ddec"/></linearGradient>'
++'<linearGradient id="vgBk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb347"/><stop offset="1" stop-color="#f08a1c"/></linearGradient>'
++'</defs></svg>';
+document.body.appendChild(d.firstChild);
+var sc='';
+for(var y=88;y<=128;y+=6.5){for(var xx=(Math.round((y-88)/6.5)%2?20:16);xx<92;xx+=8){var ex=(xx+4-55)/38,ey=(y-105)/26;if(ex*ex+ey*ey<.82)sc+='M'+xx+' '+y+'q4 4.5 8 0'}}
+var BODY='<ellipse cx="55" cy="105" rx="40" ry="28" fill="url(#vgB)"/><path d="'+sc+'" stroke="#d3dce9" stroke-width="1" fill="none" stroke-linecap="round" opacity=".9"/>';
+var WING='<g class="g-wing"><g fill="#dfe7f2" stroke="#b9c6d8" stroke-width=".8"><path d="M60 98Q38 104 16 122Q34 124 52 112Z"/><path d="M62 94Q38 96 14 112Q34 118 54 106Z"/><path d="M64 92Q42 88 20 100Q38 108 58 102Z"/></g>'
++'<path d="M70 88Q48 82 36 96Q44 112 66 112Q80 102 70 88Z" fill="url(#vgW)" stroke="#c4cfdf" stroke-width=".8"/>'
++'<path d="M44 98q4 5 8 0M52 104q4 5 8 0M58 94q4 5 8 0M46 106q4 5 8 0M62 102q4 5 8 0" stroke="#c4cfdf" fill="none" stroke-width="1.1" stroke-linecap="round"/></g>';
+var NECK0='<path d="M80 95C100 80 88 50 80 40" stroke="#fff" stroke-width="16" fill="none" stroke-linecap="round"/>';
+var NECK=NECK0+'<path d="M80 95C100 80 88 50 80 40" stroke="#dde5f0" stroke-width="13" fill="none" stroke-dasharray="1 6" opacity=".9"/>';
+var TAIL0='<path d="M20 100q-14-8-10-22 14 4 22 18z" fill="#eee"/>';
+var TAIL='<g class="g-tail"><path d="M24 100Q4 98 6 78Q22 82 30 96Z" fill="#f2f5fa" stroke="#d3dbe8" stroke-width=".8"/><path d="M24 104Q2 108 0 90Q14 90 28 100Z" fill="#e9eef6" stroke="#d3dbe8" stroke-width=".8"/><path d="M26 98Q12 92 14 72Q28 78 34 94Z" fill="#fff" stroke="#d3dbe8" stroke-width=".8"/></g>';
+var HEAD0='<circle cx="80" cy="34" r="16" fill="#fff"/>';
+var HEAD='<path class="g-tuft" d="M72 20q-2-7 3-8 0 4 3 6 1-6 6-6-1 4 0 7z" fill="#f3f6fb" stroke="#d3dbe8" stroke-width=".7"/><circle cx="80" cy="34" r="16" fill="url(#vgH)"/><path d="M68 40q4 4 9 2M70 45q4 3 8 1" stroke="#d9e1ed" fill="none" stroke-width="1" stroke-linecap="round"/>';
+var BEAK0='<g id="bk" class="g-bk"><path d="M92 30h22q4 5 0 10H92z" fill="#ff9a2e"/></g>';
+var BEAK='<g id="bk" class="g-bk"><path d="M92 34h19v4H92z" fill="#8a2f22"/><path class="g-low" d="M92 35h19q3 2 1 5.5q-2 1.5-4 1.5H92z" fill="#e8841a"/><path class="g-up" d="M92 29h22q4 3 0 7H92z" fill="url(#vgBk)"/><circle cx="105" cy="31.5" r=".9" fill="#a85a10"/></g>';
+var BROW0='<path d="M78 22l12 4" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>';
+var BROW='<path class="g-brow" d="M78 22l12 4" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>';
+var orig=window.gooseSVG;
+if(typeof orig==='function'){
+ window.gooseSVG=function(eq,awake){
+  var s=orig(eq,awake);
+  s=s.split(BODY.slice(0,0)+'<ellipse cx="55" cy="105" rx="40" ry="28" fill="#fff"/>').join(BODY)
+   .split('<g class="g-neck">').join(WING+'<g class="g-neck">')
+   .split(NECK0).join(NECK).split(TAIL0).join(TAIL).split(HEAD0).join(HEAD)
+   .split(BEAK0).join(BEAK).split(BROW0).join(BROW)
+   .replace(/<circle class="g-eye"[^>]*style="([^"]*)"\/>/,'<g class="g-eye" style="$1"><circle cx="84" cy="29" r="3.3" fill="#1b1830"/><circle cx="85.2" cy="27.8" r="1.2" fill="#fff"/><circle cx="83" cy="30.5" r=".6" fill="#fff" opacity=".7"/></g>');
+  return s;
+ };
+ try{refreshGeese()}catch(e){}
+}
+/* анимация разговора: когда меняется текст в облачке — Валера открывает клюв */
+var BS='.bub,.hbub,#sbub';
+function talk(b){
+ var t=(b.textContent||'').trim();if(!t||t==='Zzz…')return;
+ var h=b.parentElement;if(!h)return;
+ h.classList.add('talk');clearTimeout(h._tk);
+ h._tk=setTimeout(function(){h.classList.remove('talk')},Math.min(5000,Math.max(1000,t.length*60)));
+}
+new MutationObserver(function(ms){ms.forEach(function(m){
+ var t=m.target.nodeType===3?m.target.parentElement:m.target,b=t&&t.closest&&t.closest(BS);
+ if(b){talk(b);return}
+ m.addedNodes.forEach(function(n){if(n.nodeType!==1)return;if(n.matches(BS))talk(n);else n.querySelectorAll(BS).forEach(talk)});
+})}).observe(document.body,{childList:true,characterData:true,subtree:true});
+})();
+</script>
+
+<!-- ===== АВТО-ДЕТЕКТОР НОВОГО КОНТЕНТА: сам дописывает новое в таблицу обновлений, версию не меняет ===== -->
+<script>
+(function(){
+try{
+var K='valera_catalog_v1',N='valera_autonews_v1';
+function cat(){var c={},ids={};
+ try{SHOP_SETS.forEach(function(s){c['set:'+s.id]=['🧥','Комплект «'+s.name+'»',s.name];(s.ids||[]).forEach(function(i){ids[i]=1})})}catch(e){}
+ try{ITEMS.forEach(function(i){if(!ids[i.id])c['item:'+i.id]=['👕','Вещь «'+i.name+'»',i.name]})}catch(e){}
+ try{ACH.forEach(function(a){c['ach:'+a[0]]=['🏅','Достижение «'+a[2]+'»',a[2]]})}catch(e){}
+ try{WORDS.forEach(function(w){c['word:'+w[0]]=['✨','Слово галактики «'+w[1]+'»',w[1]]})}catch(e){}
+ try{Object.keys(GAMES).forEach(function(g){c['game:'+g]=['🎮','Мини-игра «'+GAMES[g].name+'»',GAMES[g].name]})}catch(e){}
+ return c}
+function rd(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v&&typeof v==='object'?v:d}catch(e){return d}}
+function apply(news){UPDATES.forEach(function(u){(news[u.v]||[]).forEach(function(l){if(u.items.indexOf(l)<0)u.items.push(l)})})}
+var cur=cat(),prev=rd(K,null),news=rd(N,{});
+apply(news);
+if(prev){
+ var all=UPDATES.map(function(u){return u.items.join(' ')}).join(' '),add=[];
+ Object.keys(cur).forEach(function(k){if(!(k in prev)&&all.indexOf(cur[k][2])<0)add.push(cur[k])});
+ if(add.length){
+  var lines=add.slice(0,12).map(function(a){return a[0]+' '+a[1]+' · авто'});
+  if(add.length>12)lines.push('…и ещё '+(add.length-12)+' новых позиций · авто');
+  var v=UPDATES[0].v;news[v]=(news[v]||[]).concat(lines);
+  try{localStorage.setItem(N,JSON.stringify(news))}catch(e){}
+  apply(news);
+  setTimeout(function(){try{toast('📰 Валера заметил новое: '+add.length+' — смотри в «Что нового»')}catch(e){}},3000);
+ }
+}
+var snap={};Object.keys(cur).forEach(function(k){snap[k]=1});
+try{localStorage.setItem(K,JSON.stringify(snap))}catch(e){}
+}catch(e){console.log('auto-updates off',e)}
+})();
 </script>
 </body>
 </html>
